@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calcul d'Ensemencement Cytogénétique</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #21262d;
+      --accent: #39d353;
+      --accent-dim: #1a4d28;
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --text-dim: #484f58;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .header {
+      margin-bottom: 32px;
+      border-left: 3px solid var(--accent);
+      padding-left: 16px;
+    }
+
+    .header .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .header h1 {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-weight: 300;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .card-section {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-section:last-child { border-bottom: none; }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child { margin-bottom: 0; }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      font-weight: 400;
+    }
+
+    .field label .unit {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 15px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field input:focus {
+      border-color: var(--accent);
+    }
+
+    .field input::placeholder {
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* Radio group for J1/J2 */
+    .radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .radio-option {
+      position: relative;
+    }
+
+    .radio-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-option label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 0;
+    }
+
+    .radio-option label .day {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .radio-option label .conc {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .radio-option input[type="radio"]:checked + label {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .radio-option input[type="radio"]:checked + label .day {
+      color: var(--accent);
+    }
+
+    .radio-option input[type="radio"]:checked + label .conc {
+      color: #4dde6a;
+    }
+
+    /* Formula display */
+    .formula-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.8;
+    }
+
+    .formula-box .var { color: var(--blue); }
+    .formula-box .op { color: var(--text-muted); }
+    .formula-box .comment { color: var(--text-dim); }
+
+    /* Button */
+    button {
+      width: 100%;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 13px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      text-transform: uppercase;
+    }
+
+    button:hover { opacity: 0.88; }
+    button:active { transform: scale(0.99); }
+
+    /* Result */
+    .result-area {
+      display: none;
+      padding: 20px 24px;
+      border-top: 1px solid var(--border);
+      animation: fadeIn 0.25s ease;
+    }
+
+    .result-area.visible { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .result-value {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    .result-unit {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    .result-details {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .detail-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+
+    .detail-item .d-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .detail-item .d-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .error-msg {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--red);
+      padding: 10px 0;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="label">Laboratoire · Cytogénétique</div>
+    <h1>Calcul d'Ensemencement</h1>
+    <p>Volume de culot cellulaire à prélever pour la mise en culture</p>
+  </div>
+
+  <div class="card">
+
+    <!-- Inputs -->
+    <div class="card-section">
+      <div class="section-title">// Paramètres du patient</div>
+
+      <div class="field">
+        <label>
+          Leucocytes (GB)
+          <span class="unit">GB/μL</span>
+        </label>
+        <input type="number" id="gb" placeholder="Ex : 7500" min="0" step="any">
+      </div>
+
+      <div class="field">
+        <label>
+          Facteur de dilution
+          <span class="unit">ex : 10 → dilution 1/10</span>
+        </label>
+        <input type="number" id="dilution" value="10" min="0" step="any">
+      </div>
+
+      <div class="field">
+        <label>
+          Volume final de culture
+          <span class="unit">mL</span>
+        </label>
+        <input type="number" id="volume" value="8" min="0" step="any">
+      </div>
+    </div>
+
+    <!-- Culture type -->
+    <div class="card-section">
+      <div class="section-title">// Type de culture</div>
+      <div class="radio-group">
+        <div class="radio-option">
+          <input type="radio" name="concentration" id="j1" value="1.8" checked>
+          <label for="j1">
+            <span class="day">J1</span>
+            <span class="conc">1.8 M/mL · 1 jour</span>
+          </label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" name="concentration" id="j2" value="1.5">
+          <label for="j2">
+            <span class="day">J2</span>
+            <span class="conc">1.5 M/mL · 2 jours</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formula (read-only) -->
+    <div class="card-section">
+      <div class="section-title">// Formule</div>
+      <div class="formula-box">
+        <span class="var">C_init</span> <span class="op">= (GB × 1000 / 1 000 000) × dilution</span><br>
+        <span class="var">V_culot</span> <span class="op">= (C_cible × V_final / C_init) × 1000</span><br>
+        <span class="comment">→ résultat en μL</span>
+      </div>
+    </div>
+
+    <!-- Button -->
+    <div class="card-section">
+      <button onclick="calculer()">Calculer →</button>
+    </div>
+
+    <!-- Result -->
+    <div class="result-area" id="result-area">
+      <div class="result-label">// Volume de culot à prélever</div>
+      <div id="result-main"></div>
+      <div class="result-details" id="result-details"></div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">— fichier autonome, aucune connexion requise —</div>
+
+</div>
+
+<script>
+  function calculer() {
+    const gb = parseFloat(document.getElementById("gb").value);
+    const dilution = parseFloat(document.getElementById("dilution").value);
+    const volumeFinal = parseFloat(document.getElementById("volume").value);
+    const concFinale = parseFloat(document.querySelector('input[name="concentration"]:checked').value);
+
+    const area = document.getElementById("result-area");
+    const main = document.getElementById("result-main");
+    const details = document.getElementById("result-details");
+
+    area.classList.remove("visible");
+
+    if (isNaN(gb) || gb <= 0 || isNaN(dilution) || dilution <= 0 || isNaN(volumeFinal) || volumeFinal <= 0) {
+      main.innerHTML = '<div class="error-msg">⚠ Veuillez entrer des valeurs valides et positives.</div>';
+      details.innerHTML = "";
+      area.classList.add("visible");
+      return;
+    }
+
+    // Exact same formula as the original
+    const concInitiale = (gb * 1000 / 1_000_000) * dilution; // M/mL
+    const volumeCulot = ((concFinale * volumeFinal) / concInitiale) * 1000; // μL
+
+    const typeLabel = concFinale === 1.8 ? "J1 (1 jour)" : "J2 (2 jours)";
+
+    main.innerHTML = `
+      <span class="result-value">${volumeCulot.toFixed(3)}</span>
+      <span class="result-unit">μL</span>
+    `;
+
+    details.innerHTML = `
+      <div class="detail-item">
+        <div class="d-label">C initiale</div>
+        <div class="d-value">${concInitiale.toFixed(4)} M/mL</div>
+      </div>
+      <div class="detail-item">
+        <div class="d-label">C cible</div>
+        <div class="d-value">${concFinale} M/mL · ${typeLabel}</div>
+      </div>
+      <div class="detail-item">
+        <div class="d-label">GB corrigés</div>
+        <div class="d-value">${(gb * dilution).toLocaleString('fr-FR')} /μL</div>
+      </div>
+      <div class="detail-item">
+        <div class="d-label">Volume culture</div>
+        <div class="d-value">${volumeFinal} mL</div>
+      </div>
+    `;
+
+    area.classList.add("visible");
+  }
+
+  // Allow Enter key to trigger calculation
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter") calculer();
+  });
+</script>
+</body>
+</html>
